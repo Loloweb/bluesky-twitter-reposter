@@ -40,7 +40,7 @@ async def main() -> NoReturn:
         ):
             callback(latest_tweet)
             before_tweet = latest_tweet
-        else:
-            print(f"Latest tweet from {latest_tweet.user.screen_name}: {latest_tweet.text}") # Debug
+        #else:
+        #    print(f"Latest tweet from {latest_tweet.user.screen_name}: {latest_tweet.text}") # Debug
 
 asyncio.run(main())
