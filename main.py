@@ -7,7 +7,6 @@ from atproto import Client as BlueskyClient
 twitter_client = Client()
 bluesky_client = BlueskyClient("https://bsky.social")
 
-USER_ID = '97672707' # @STARendirect
 CHECK_INTERVAL = 60 * 5 # 5 minutes. Rate limit for fetching user tweets is 50 requests per 15 minutes.
 
 def callback(tweet: Tweet) -> None:
