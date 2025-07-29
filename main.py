@@ -1,6 +1,8 @@
+import requests
 from client import *
 import asyncio
-from typing import NoReturn
+import re
+from typing import NoReturn, List, Dict
 from twikit import Client, Tweet
 from atproto import Client as BlueskyClient
 
@@ -11,7 +13,62 @@ CHECK_INTERVAL = 60 * 5 # 5 minutes. Rate limit for fetching user tweets is 50 r
 
 def callback(tweet: Tweet) -> None:
     print(f"New tweet from {tweet.user.screen_name}: {tweet.text}")
-    bluesky_client.post(tweet.text)
+    hashtags_links = parse_facets(tweet.text)
+    bluesky_client.post(tweet.text, facets=hashtags_links, langs=["fr"])
+
+def parse_urls(text: str) -> List[Dict]:
+    spans = []
+    # From https://docs.bsky.app/docs/advanced-guides/posts#mentions-and-links
+    # partial/naive URL regex based on: https://stackoverflow.com/a/3809435
+    # tweaked to disallow some training punctuation
+    url_regex = rb"[$|\W](https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*[-a-zA-Z0-9@%_\+~#//=])?)"
+    text_bytes = text.encode("UTF-8")
+    for m in re.finditer(url_regex, text_bytes):
+        spans.append({
+            "start": m.start(1),
+            "end": m.end(1),
+            "url": m.group(1).decode("UTF-8"),
+        })
+    return spans
+
+def parse_hashtags(text: str) -> List[Dict]:
+    spans = []
+    # The docs don't have an example for hashtags, so this is based on the URL regex
+    hashtag_regex = rb"(^|\s)(#[a-zA-Z0-9_]+)"
+    text_bytes = text.encode("UTF-8")
+    for m in re.finditer(hashtag_regex, text_bytes):
+        spans.append({
+            "start": m.start(2),
+            "end": m.end(2),
+            "tag": m.group(2).decode("UTF-8"),
+        })
+    return spans
+
+def parse_facets(text: str) -> List[Dict]:
+    facets = []
+    for m in parse_hashtags(text):
+        facets.append({
+            "index": {
+                "byteStart": m["start"],
+                "byteEnd": m["end"],
+            },
+            "features": [{"$type": "app.bsky.richtext.facet#tag", "tag": m["tag"][1:]}],  # Remove the '#' from the tag
+        })
+    for u in parse_urls(text):
+        facets.append({
+            "index": {
+                "byteStart": u["start"],
+                "byteEnd": u["end"],
+            },
+            "features": [
+                {
+                    "$type": "app.bsky.richtext.facet#link",
+                    # NOTE: URI ("I") not URL ("L")
+                    "uri": u["url"],
+                }
+            ],
+        })
+    return facets
 
 async def get_latest_tweet():
     return (await twitter_client.get_user_tweets(USER_ID, 'Tweets', count=1))[0]
