@@ -1,4 +1,3 @@
-import requests
 from client import *
 import asyncio
 import re
