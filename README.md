@@ -1,4 +1,4 @@
-Simple Python 3.11 program that uses [twikit](https://github.com/d60/twikit) to read a Twitter account evey 5 mins, then reposts any new tweet as a Bluesky post.
+Simple Python 3.11 program that uses [twikit](https://github.com/d60/twikit) to read a Twitter account every 5 mins (customizable), then reposts any new tweet as a Bluesky post.
 
 ## Requirements
 - Python >=3.10 with these libraries (you might want to set up a [venv](https://docs.python.org/3/library/venv.html) for them):
