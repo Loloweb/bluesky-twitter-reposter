@@ -11,7 +11,7 @@ CHECK_INTERVAL = 60 * 5 # 5 minutes. Rate limit for fetching user tweets is 50 r
 
 def callback(tweet: Tweet) -> None:
     print(f"New tweet from {tweet.user.screen_name}: {tweet.text}")
-    bluesky_client.post_tweet(tweet.text)
+    bluesky_client.post(tweet.text)
 
 async def get_latest_tweet():
     return (await twitter_client.get_user_tweets(USER_ID, 'Tweets', count=1))[0]
