@@ -14,7 +14,7 @@ CHECK_INTERVAL = 60 * 5 # 5 minutes. Rate limit for fetching user tweets is 50 r
 def callback(tweet: Tweet) -> None:
     print(f"New tweet from {tweet.user.screen_name}: {tweet.text}")
     hashtags_links = parse_facets(tweet.text)
-    bluesky_client.post(tweet.text, facets=hashtags_links, langs=["fr"])
+    bluesky_client.post(tweet.text, facets=hashtags_links, langs=["fr"]) # For English posts, change from fr to en
 
 def parse_urls(text: str) -> List[Dict]:
     spans = []
