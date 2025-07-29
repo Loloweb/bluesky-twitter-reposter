@@ -11,7 +11,7 @@ bluesky_client = BlueskyClient("https://bsky.social")
 CHECK_INTERVAL = 60 * 5 # 5 minutes. Rate limit for fetching user tweets is 50 requests per 15 minutes.
 
 def callback(tweet: Tweet) -> None:
-    print(f"New tweet from {tweet.user.screen_name}: {tweet.text}")
+    print(f"New tweet from {tweet.user.screen_name} at {tweet.created_at}: {tweet.text}")
     hashtags_links = parse_facets(tweet.text)
     bluesky_client.post(tweet.text, facets=hashtags_links, langs=["fr"]) # For English posts, change from fr to en
 
