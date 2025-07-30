@@ -4,6 +4,7 @@ import re
 from typing import NoReturn, List, Dict
 from twikit import Client, Tweet
 from atproto import Client as BlueskyClient
+import httpcore
 
 twitter_client = Client()
 bluesky_client = BlueskyClient("https://bsky.social")
@@ -70,7 +71,14 @@ def parse_facets(text: str) -> List[Dict]:
     return facets
 
 async def get_latest_tweet():
-    return (await twitter_client.get_user_tweets(USER_ID, 'Tweets', count=1))[0]
+    try:
+        return (await twitter_client.get_user_tweets(USER_ID, 'Tweets', count=1))[0]
+    except httpcore.ConnectTimeout:
+        print("Connection timeout while fetching latest tweet. Will retry on next interval.")
+        return None
+    except Exception as e:
+        print(f"Error fetching latest tweet: {e}")
+        return None
 
 async def main() -> NoReturn:
 
@@ -89,6 +97,9 @@ async def main() -> NoReturn:
     while True:
         await asyncio.sleep(CHECK_INTERVAL)
         latest_tweet = await get_latest_tweet()
+        if latest_tweet is None:
+            print("Skipping this check due to connection error...")
+            continue # Don't replace before_tweet if we couldn't fetch the latest tweet
         if (
             before_tweet.id != latest_tweet.id and
             before_tweet.created_at_datetime < latest_tweet.created_at_datetime
