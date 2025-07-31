@@ -77,21 +77,37 @@ async def get_latest_tweet():
         print("Connection timeout while fetching latest tweet. Will retry on next interval.")
         return None
     except Exception as e:
-        print(f"Error fetching latest tweet: {e}")
+        if "status: 401" in str(e):
+            print("Authentication failed. Relogging...")
+            await login_twitter()
+        else:
+            print(f"Error fetching latest tweet: {e}")
         return None
+    
+async def login_twitter():
+    try:
+        await twitter_client.login(
+            auth_info_1=USERNAME,
+            auth_info_2=EMAIL,
+            password=PASSWORD,
+            cookies_file='cookies.json',
+        )
+        print(f"Logged in on Twitter as {USERNAME}")
+    except Exception as e:
+        print(f"Error logging in to Twitter: {e}")
+        return
+
+async def login_bluesky():
+    try:
+        bluesky_client.login(BLUESKY_USERNAME, BLUESKY_PASSWORD)
+        print(f"Logged in on Bluesky as {BLUESKY_USERNAME}")
+    except Exception as e:
+        print(f"Error logging in to Bluesky: {e}")
+        return
 
 async def main() -> NoReturn:
-
-    await twitter_client.login(
-        auth_info_1=USERNAME,
-        auth_info_2=EMAIL,
-        password=PASSWORD,
-        cookies_file='cookies.json',
-    )
-    print(f"Logged in on Twitter as {USERNAME}")
-
-    bluesky_client.login(BLUESKY_USERNAME, BLUESKY_PASSWORD)
-    print(f"Logged in on Bluesky as {BLUESKY_USERNAME}")
+    await login_twitter()
+    await login_bluesky()
 
     before_tweet = await get_latest_tweet()
     while True:
