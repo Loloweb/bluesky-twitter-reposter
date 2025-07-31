@@ -25,7 +25,7 @@ pip install atproto # AT protocol (Bluesky) SDK
     - For the Bluesky account's password, it is highly recommended to set an [app password](https://bsky.app/settings/app-passwords) instead of the account's actual password.
 3. Adjust main.py to your liking such as:
     - The language of your Bluesky posts. This affects who can see the posts in their feed. **(defaults to French)**
-    - The frequency in which you check for new tweets (in seconds, default is 5 minutes, careful not to surpass the [rate limit](https://github.com/d60/twikit/blob/main/ratelimits.md)!)
+    - The frequency in which you check for new tweets (in seconds, default is 5 minutes, I do not recommend setting lower than that!)
     - And more...?
 4. Run it
 ```bash
