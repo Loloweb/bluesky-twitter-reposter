@@ -5,6 +5,7 @@ from typing import NoReturn, List, Dict
 from twikit import Client, Tweet
 from atproto import Client as BlueskyClient
 import httpcore
+import traceback
 
 twitter_client = Client()
 bluesky_client = BlueskyClient("https://bsky.social")
@@ -77,11 +78,15 @@ async def get_latest_tweet():
         print("Connection timeout while fetching latest tweet. Will retry on next interval.")
         return None
     except Exception as e:
-        if "status: 401" in str(e):
+        if "status: 401" in str(e) or "status: 403" in str(e):
             print("Authentication failed. Relogging...")
             await login_twitter()
         else:
-            print(f"Error fetching latest tweet: {e}")
+            print(f"Error fetching latest tweet:")
+            print(f"  Exception type: {type(e).__name__}")
+            print(f"  Exception message: {str(e) if str(e) else 'No message provided'}")
+            print(f"  Exception repr: {repr(e)}")
+            print(f"  Traceback: {traceback.format_exc()}")
         return None
     
 async def login_twitter():
