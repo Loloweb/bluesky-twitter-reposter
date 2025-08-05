@@ -2,20 +2,21 @@ from client import *
 import asyncio
 import re
 from typing import NoReturn, List, Dict
-from twikit import Client, Tweet
+from datetime import datetime
+from ntscraper import Nitter
 from atproto import Client as BlueskyClient
-import httpcore
 import traceback
+import json
 
-twitter_client = Client()
+twitter_client = Nitter(log_level=1, skip_instance_check=True)
 bluesky_client = BlueskyClient("https://bsky.social")
 
 CHECK_INTERVAL = 60 * 5 # 5 minutes. Rate limit for fetching user tweets is 50 requests per 15 minutes.
 
-def callback(tweet: Tweet) -> None:
-    print(f"New tweet from {tweet.user.screen_name} at {tweet.created_at}: {tweet.text}")
-    hashtags_links = parse_facets(tweet.text)
-    bluesky_client.post(tweet.text, facets=hashtags_links, langs=["fr"]) # For English posts, change from fr to en
+def callback(tweet) -> None:
+    print(f"New tweet from {tweet['user']['username']} at {tweet['date']}: {tweet['text']}")
+    hashtags_links = parse_facets(tweet['text'])
+    bluesky_client.post(tweet['text'], facets=hashtags_links, langs=["fr"]) # For English posts, change from fr to en
 
 def parse_urls(text: str) -> List[Dict]:
     spans = []
@@ -73,34 +74,21 @@ def parse_facets(text: str) -> List[Dict]:
 
 async def get_latest_tweet():
     try:
-        return (await twitter_client.get_user_tweets(USER_ID, 'Tweets', count=1))[0]
-    except httpcore.ConnectTimeout:
-        print("Connection timeout while fetching latest tweet. Will retry on next interval.")
-        return None
-    except Exception as e:
-        if "status: 401" in str(e) or "status: 403" in str(e):
-            print("Authentication failed. Relogging...")
-            await login_twitter()
-        else:
-            print(f"Error fetching latest tweet:")
-            print(f"  Exception type: {type(e).__name__}")
-            print(f"  Exception message: {str(e) if str(e) else 'No message provided'}")
-            print(f"  Exception repr: {repr(e)}")
-            print(f"  Traceback: {traceback.format_exc()}")
-        return None
-    
-async def login_twitter():
-    try:
-        await twitter_client.login(
-            auth_info_1=USERNAME,
-            auth_info_2=EMAIL,
-            password=PASSWORD,
-            cookies_file='cookies.json',
+        tweet = twitter_client.get_tweets(USER_NAME, mode='user', number=1)
+        tweet = json.loads(tweet)["tweets"][0]
+        # Convert date string to datetime object
+        tweet["date"] = datetime.strptime(
+            tweet["date"].replace(" · ", " ").replace(" UTC", ""),
+            "%b %d, %Y %I:%M %p"
         )
-        print(f"Logged in on Twitter as {USERNAME}")
+        return tweet
     except Exception as e:
-        print(f"Error logging in to Twitter: {e}")
-        return
+        print(f"Error fetching latest tweet:")
+        print(f"  Exception type: {type(e).__name__}")
+        print(f"  Exception message: {str(e) if str(e) else 'No message provided'}")
+        print(f"  Exception repr: {repr(e)}")
+        print(f"  Traceback: {traceback.format_exc()}")
+        return None
 
 async def login_bluesky():
     try:
@@ -111,7 +99,6 @@ async def login_bluesky():
         return
 
 async def main() -> NoReturn:
-    await login_twitter()
     await login_bluesky()
 
     before_tweet = await get_latest_tweet()
@@ -122,8 +109,8 @@ async def main() -> NoReturn:
             print("Skipping this check due to connection error...")
             continue # Don't replace before_tweet if we couldn't fetch the latest tweet
         if (
-            before_tweet.id != latest_tweet.id and
-            before_tweet.created_at_datetime < latest_tweet.created_at_datetime
+            before_tweet["id"] != latest_tweet["id"] and
+            before_tweet["date"] < latest_tweet["date"]
         ):
             callback(latest_tweet)
             before_tweet = latest_tweet
